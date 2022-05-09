@@ -1,12 +1,15 @@
-# Bassed off of https://qoiformat.org/qoi-specification.pdf
+# Based off of https://qoiformat.org/qoi-specification.pdf
 import time
 
 in_directory = 'imgBits'
 out_directory = 'imgQoi'
 
-def QoiPixelHash(px):
-    r,g,b = px
-    return (r * 3 + g * 5 + b * 7) % 64
+def QoiPixelHash(px, channels):
+    if channels == 3: 
+        r,g,b = px
+        a = 255
+    else: r,g,b,a = px
+    return (r * 3 + g * 5 + b * 7 + a * 11) % 64
 
 def CalcDiff(px_1,px_2):
     return [(px_1[i] - px_2[i]) % 256 for i in range(len(px_1))]
@@ -34,7 +37,7 @@ def toQoi(filename):
     # Start encoding data
 
     last_px = [0, 0, 0] # The last seen pixel
-    prev_pxs = [None] * 64 # A running hash-table bassed array of previously seen pixels
+    prev_pxs = [None] * 64 # A running hash-table based array of previously seen pixels
     run = 0
 
     # Repeat until we have done each pixel

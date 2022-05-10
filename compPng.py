@@ -16,5 +16,3 @@ def compPng(a,b):
     im.close()
 
     return np.array_equal(pixels1,pixels2)
-
-print(compPng('imgRevQoi/rev.png','refference/dice.png'))

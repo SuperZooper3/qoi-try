@@ -80,7 +80,7 @@ def fromQoi(filename):
                     # If we have 4 channels, add 255 as the alpha
                     if channels == 4: 
                         px.append(last_px[3]) # The alpha value remains unchanged from the previous pixel. :)
-                    if debug or len(px) == 3: print("RGB",px)
+                    if debug: print("RGB",px)
                     n += 1
                     pxl_Stream.append(px)
                 else: # We have an RGBA pair
@@ -97,7 +97,7 @@ def fromQoi(filename):
                     a = int.from_bytes(ba,byteorder='big')
                     # Step. 1-2.3 Write to the bufer 
                     px = [r,g,b,a]
-                    if debug or len(px) == 3: print("RGBA",px)
+                    if debug: print("RGBA",px)
                     n += 1
                     pxl_Stream.append(px)
             else: # If we have a 2 bit tag
@@ -107,14 +107,14 @@ def fromQoi(filename):
                 if tag == QOI_OP_INDEX:
                     data = b1 & 0b00111111 # 6 Bit Mask to read the data
                     px = prev_pxs[data]
-                    if debug or len(px) == 3: print("INDEX",data,px)
+                    if debug: print("INDEX",data,px)
                     n += 1
                     pxl_Stream.append(px)
                 elif tag == QOI_OP_RUN:
                     data = b1 & 0b00111111 # 6 Bit Mask to read the data
                     run = data + 1 # The run is stored with a -1 bias, this counters that
                     px = last_px
-                    if debug or len(px) == 3: print("RUN",run,px)
+                    if debug: print("RUN",run,px)
                     n += run
                     pxl_Stream.extend([px]*run)
                 elif tag == QOI_OP_DIFF:
@@ -123,7 +123,7 @@ def fromQoi(filename):
                     dg = ((data & 0b00001100) >> 2)-2
                     db = ((data & 0b00000011))-2
                     px = reverseDiff(list(last_px),[dr,dg,db])
-                    if debug or len(px) == 3: print("DIFF",last_px,dr,dg,db,px)
+                    if debug: print("DIFF",last_px,dr,dg,db,px)
                     n += 1
                     pxl_Stream.append(px)
                 elif tag == QOI_OP_LUMA:
@@ -132,7 +132,7 @@ def fromQoi(filename):
                     dr = ((b2 & 0b11110000) >> 4) -8 + dg
                     db = ((b2 & 0b00001111)) -8 + dg
                     px = reverseDiff(list(last_px),[dr,dg,db])
-                    if debug or len(px) == 3: print("LUMA",dr,dg,db,px)
+                    if debug: print("LUMA",dr,dg,db,px)
                     n += 1
                     pxl_Stream.append(px)
                 else:
@@ -140,21 +140,17 @@ def fromQoi(filename):
                     exit()
             # Warp up the processing of the chunk:
             # Set the last px
-            if len(px) != len(last_px): print(len(px),n) # Use to detect non homogenious arrays
             last_px = list(px)
             
             prev_pxs[QoiPixelHash(px)] = px
             if len(pxl_Stream) >= width:
                 pxls.append(pxl_Stream[0:width])
                 pxl_Stream = pxl_Stream[width:]
-        return pxls
+        
+        # Turn it into an np image
+        array = np.array(pxls, dtype=np.uint8)
+        # Use PIL to create an image from the new array of pixels
+        new_image = Image.fromarray(array)
+        new_image.save(out_directory+'/'+filename.split('.')[0]+'.png')
 
-if __name__ == "__main__":
-    pxls = fromQoi("dice.qoi")
-    if debug: print(len(pxls), len(pxls[0]))
-
-    # Turn it into an np image
-    array = np.array(pxls, dtype=np.uint8)
-    # Use PIL to create an image from the new array of pixels
-    new_image = Image.fromarray(array)
-    new_image.save(out_directory+'/rev.png')
+        return pxls # Return it anyways

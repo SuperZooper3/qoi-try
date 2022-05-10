@@ -21,7 +21,7 @@ def loadTo(filename):
     # Write all da bits
     for y in range(size[1]):
         for x in range(size[0]):
-            px = im.getpixel((x,y))
+            px = rgb_im.getpixel((x,y))
             # Write R, G B
             for v in px:
                 d = bytearray(v.to_bytes(2, byteorder='big'))

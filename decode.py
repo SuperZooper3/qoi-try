@@ -1,8 +1,9 @@
 # Based off of https://qoiformat.org/qoi-specification.pdf
+import time
 import numpy as np
 from PIL import Image
 
-in_directory = 'refference'
+in_directory = 'imgQoi'
 out_directory = 'imgRevQoi'
 
 # Defenitions
@@ -12,8 +13,6 @@ QOI_OP_INDEX = 0b00
 QOI_OP_DIFF = 0b01
 QOI_OP_LUMA = 0b10
 QOI_OP_RUN = 0b11
-
-debug = False
 
 def QoiPixelHash(px):
     if len(px) == 3: 
@@ -28,7 +27,7 @@ def reverseDiff(lastPx, d):
         out[i]+= d[i]
     return out
 
-def fromQoi(filename):
+def fromQoi(filename, debug = False):
     with open(in_directory+"/"+filename,"rb") as in_f:
         magic = in_f.read(4)
         assert(magic == b'qoif') # Assert that the file has the correct magic at it's head
@@ -146,6 +145,7 @@ def fromQoi(filename):
             if len(pxl_Stream) >= width:
                 pxls.append(pxl_Stream[0:width])
                 pxl_Stream = pxl_Stream[width:]
+            input()
         
         # Turn it into an np image
         array = np.array(pxls, dtype=np.uint8)
@@ -154,3 +154,7 @@ def fromQoi(filename):
         new_image.save(out_directory+'/'+filename.split('.')[0]+'.png')
 
         return pxls # Return it anyways
+
+
+if __name__ == "__main__":
+    fromQoi("kodim10.qoi", debug=True)

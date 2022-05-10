@@ -104,6 +104,12 @@ def toQoi(filename, debug = False):
         last_px = px
         # Insert into "hash table"
         prev_pxs[px_HASH] = px
+
+    if run > 0:
+        d = (QOI_OP_RUN << 6) | (run-1)
+        if debug: print("run",format(d,'b'))
+        out_f.write(d.to_bytes(2, byteorder='big')[1:3])
+        run = 0
         
     # Close the file with 7 * 0x00 and 0x01
     for _ in range(7): out_f.write(bytes([0]))

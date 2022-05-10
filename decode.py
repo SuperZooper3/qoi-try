@@ -3,9 +3,6 @@ import time
 import numpy as np
 from PIL import Image
 
-in_directory = 'imgQoi'
-out_directory = 'imgRevQoi'
-
 # Defenitions
 QOI_OP_RGB = 0b11111110
 QOI_OP_RGBA = 0b11111111
@@ -27,8 +24,14 @@ def reverseDiff(lastPx, d):
         out[i]+= d[i]
     return out
 
-def fromQoi(filename, debug = False):
-    with open(in_directory+"/"+filename,"rb") as in_f:
+def fromQoi(filename, outfilename, debug = False):
+    """
+    Decode a QOI image, returning a 2d array of the pixels and saving an image at the outfilename directory
+    filename: str. Ex: "images/bird.qoi"
+    outfilename: str. Ex: "outImages/bird.png"
+    debug: bool. If you want debug printing for each chunk met
+    """
+    with open(filename,"rb") as in_f:
         magic = in_f.read(4)
         assert(magic == b'qoif') # Assert that the file has the correct magic at it's head
         width_b = in_f.read(4) # Read a uint-32 for the width
@@ -145,14 +148,15 @@ def fromQoi(filename, debug = False):
                 pxls.append(pxl_Stream[0:width])
                 pxl_Stream = pxl_Stream[width:]
         
+        in_f.close()
         # Turn it into an np image
         array = np.array(pxls, dtype=np.uint8)
         # Use PIL to create an image from the new array of pixels
         new_image = Image.fromarray(array)
-        new_image.save(out_directory+'/'+filename.split('.')[0]+'.png')
+        new_image.save(outfilename)
 
         return pxls # Return it anyways
 
 
 if __name__ == "__main__":
-    fromQoi("kodim23.qoi", debug=False)
+    fromQoi("refference/kodim23.qoi","imgRevQoi/kodim23.png", debug=False)

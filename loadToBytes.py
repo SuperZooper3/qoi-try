@@ -2,9 +2,8 @@
 import os
 from PIL import Image
 
-in_directory = 'imgSource'
+in_directory = 'refference'
 out_directory = 'imgBits'
-
 
 def loadTo(filename):
     # Create the outfile
@@ -36,6 +35,3 @@ for filename in os.listdir(in_directory):
     if filename.endswith(".jpg") or filename.endswith(".png"):
         print(filename)
         loadTo(filename)
-
-
-                

@@ -1,4 +1,5 @@
 # This file converts all images in /imgSource to bye representations of all their data in /imgBits
+# This is just used to test if the loadToBytes was done correctly
 import os
 import numpy as np
 from PIL import Image
@@ -34,6 +35,3 @@ for filename in os.listdir(in_directory):
     if filename.endswith("") and not filename.endswith(".head"):
         print(filename)
         loadFrom(filename)
-
-        
-                

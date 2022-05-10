@@ -8,8 +8,6 @@ QOI_OP_DIFF = 0b01
 QOI_OP_LUMA = 0b10
 QOI_OP_RUN = 0b11
 
-in_directory = 'imgBits'
-out_directory = 'imgQoi'
 
 def QoiPixelHash(px):
     if len(px) == 3: 
@@ -21,17 +19,23 @@ def QoiPixelHash(px):
 def CalcDiff(px_1,px_2):
     return [(px_1[i] - px_2[i]) % 256 for i in range(len(px_1))]
 
-def toQoi(filename, debug = False):
+def toQoi(filename, outfilename, debug = False):
+    """
+    Encode a raw bit stream of pixel data (1 byte for each R G B A) into a QOI file
+    filename: str. The name of the pixel data file "imgBits/kodim23"
+    outfilename: str. The save location of the qoi file "imgQoi/kodim23.qoi"
+    debug: bool. If you want debug printing for each chunk met
+    """
     # Get the size of the image from the head
     size = []
-    with open(in_directory+"/"+filename+".head") as head_f:
+    with open(filename+".head") as head_f:
         size.append(int(head_f.readline()))
         size.append(int(head_f.readline()))
 
     total_px = size[0]*size[1]
     
-    in_f = open(in_directory+"/"+filename, "rb")
-    out_f = open(out_directory+"/"+filename+".qoi","wb")
+    in_f = open(filename, "rb")
+    out_f = open(outfilename,"wb")
 
     channels = 4 # For now I dont know how to see if a png is rgb, or rgba. So will use RGBA by default
 
@@ -114,6 +118,8 @@ def toQoi(filename, debug = False):
     # Close the file with 7 * 0x00 and 0x01
     for _ in range(7): out_f.write(bytes([0]))
     out_f.write(bytes([1]))
+    in_f.close()
+    out_f.close()
 
 if __name__ == "__main__":
-    toQoi("kodim23", debug=False)
+    toQoi("imgBits/kodim23","imgQoi/kodim23.qoi", debug=False)

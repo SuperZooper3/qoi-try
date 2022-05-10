@@ -155,4 +155,4 @@ def fromQoi(filename, debug = False):
 
 
 if __name__ == "__main__":
-    fromQoi("testcard_rgba.qoi", debug=False)
+    fromQoi("kodim23.qoi", debug=False)

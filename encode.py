@@ -116,4 +116,4 @@ def toQoi(filename, debug = False):
     out_f.write(bytes([1]))
 
 if __name__ == "__main__":
-    toQoi("testcard_rgba", debug=False)
+    toQoi("kodim23", debug=False)

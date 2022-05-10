@@ -21,7 +21,7 @@ def QoiPixelHash(px):
 def CalcDiff(px_1,px_2):
     return [(px_1[i] - px_2[i]) % 256 for i in range(len(px_1))]
 
-def toQoi(filename):
+def toQoi(filename, debug = False):
     # Get the size of the image from the head
     size = []
     with open(in_directory+"/"+filename+".head") as head_f:
@@ -46,7 +46,6 @@ def toQoi(filename):
 
     last_px = [0, 0, 0, 255] # The last seen pixel, starts at 0, 0, 0, 255
     prev_pxs = [None] * 64 # A running hash-table based array of previously seen pixels
-    prev_pxs[QoiPixelHash(last_px)] = last_px
 
     run = 0
 
@@ -55,27 +54,36 @@ def toQoi(filename):
         # Read in the RGB values of the pixel
         px = [int.from_bytes(in_f.read(1), byteorder="big") for _ in range(channels)]
         px_HASH = QoiPixelHash(px)
+        # print(px_HASH)
         px_DIFF = CalcDiff(px, last_px)
+        
+        # Step 0.5: Write runs if run over
+        if run > 0 and px != last_px:
+            d = (QOI_OP_RUN << 6) | (run-1)
+            if debug: print("run",format(d,'b'))
+            out_f.write(d.to_bytes(2, byteorder='big')[1:3])
+            run = 0
 
         # Step 1: Check for run
         if px == last_px:
             run += 1
-            # print("Run increase", px_HASH, run)
+            # if debug: print("Run increase", px_HASH, run)
             if run == 62: # See note in spec on run
                 d = (QOI_OP_RUN << 6) | (run-1)
+                if debug: print("Run", format(d,'b'))
                 out_f.write(d.to_bytes(2, byteorder='big')[1:3])
                 run = 0
         
         # Step 2: Check for value in previously seen pixels
         elif prev_pxs[px_HASH] == px:
             d = (QOI_OP_INDEX << 6) | px_HASH
-            print("Prev",d)
+            if debug: print("Index",format(d,'b'))
             out_f.write(d.to_bytes(2, byteorder='big')[1:3])
         
         # Step 3: Try and express difference from last px
         elif px_DIFF[0] <= 1 and px_DIFF[0] >= -2 and px_DIFF[1] <= 1 and px_DIFF[1] >= -2 and px_DIFF[2] <= 1 and px_DIFF[2] >= -2 and px_DIFF[3] == 0:
             d = (QOI_OP_DIFF << 6) | ((px_DIFF[0]+2) << 4) | ((px_DIFF[1]+2) << 2) | ((px_DIFF[2]+2))
-            print("Diff", d)
+            if debug: print("Diff", format(d,'b'))
             out_f.write(d.to_bytes(2, byteorder='big')[1:3])
 
         # Step 4: Give up and draw the straight colour
@@ -83,20 +91,14 @@ def toQoi(filename):
             # If the alpha is the same as the last pixel, the doc says to encode as RGB
             if channels == 3 or px[3] == last_px[3]: # The channels == 3 is redundant here, but keeping for readability
                 d = [QOI_OP_RGB,px[0],px[1], px[2]]
-                print("Raw RGB",d)
+                if debug: print("Raw RGB",d)
                 for v in d:
                     out_f.write(v.to_bytes(2, byteorder='big')[1:3])
             else: # Write an RGBA block
                 d = [QOI_OP_RGBA,px[0],px[1], px[2],px[3]]
-                print("Raw RGBA",d)
+                if debug: print("Raw RGBA",d)
                 for v in d:
                     out_f.write(v.to_bytes(2, byteorder='big')[1:3])
-
-        # Step 1.5: Write runs if run over
-        if run > 0 and px != last_px:
-            d = (QOI_OP_RUN << 6) | (run-1)
-            out_f.write(d.to_bytes(2, byteorder='big'))
-            run = 0
 
         # Once done encoding, set last_px to px
         last_px = px
@@ -107,7 +109,5 @@ def toQoi(filename):
     for _ in range(7): out_f.write(bytes([0]))
     out_f.write(bytes([1]))
 
-
-    
-
-toQoi("kodim10")
+if __name__ == "__main__":
+    toQoi("testcard_rgba", debug=False)

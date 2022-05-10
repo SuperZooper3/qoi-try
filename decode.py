@@ -55,7 +55,6 @@ def fromQoi(filename, debug = False):
         else:
             last_px = [0,0,0,255]
         prev_pxs = [[0]*channels] * 64
-        prev_pxs[QoiPixelHash(last_px)] = last_px
 
         while n < total_px:
             # Step 1 Take in the first byte
@@ -145,7 +144,6 @@ def fromQoi(filename, debug = False):
             if len(pxl_Stream) >= width:
                 pxls.append(pxl_Stream[0:width])
                 pxl_Stream = pxl_Stream[width:]
-            input()
         
         # Turn it into an np image
         array = np.array(pxls, dtype=np.uint8)
@@ -157,4 +155,4 @@ def fromQoi(filename, debug = False):
 
 
 if __name__ == "__main__":
-    fromQoi("kodim10.qoi", debug=True)
+    fromQoi("testcard_rgba.qoi", debug=False)

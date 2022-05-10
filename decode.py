@@ -1,4 +1,6 @@
 # Based off of https://qoiformat.org/qoi-specification.pdf
+import numpy as np
+from PIL import Image
 
 in_directory = 'refference'
 out_directory = 'imgRevQoi'
@@ -11,8 +13,10 @@ QOI_OP_DIFF = 0b01
 QOI_OP_LUMA = 0b10
 QOI_OP_RUN = 0b11
 
-def QoiPixelHash(px, channels):
-    if channels == 3: 
+debug = False
+
+def QoiPixelHash(px):
+    if len(px) == 3: 
         r,g,b = px
         a = 255
     else: r,g,b,a = px
@@ -22,7 +26,6 @@ def reverseDiff(lastPx, d):
     out = list(lastPx)
     for i in range(len(d)):
         out[i]+= d[i]
-    # # print(lastPx,out,d)
     return out
 
 def fromQoi(filename):
@@ -39,19 +42,27 @@ def fromQoi(filename):
         channels = int.from_bytes(channels_b,byteorder='big')
         colorspace = int.from_bytes(colorspace_b,byteorder='big')
 
-        total_px = width * height
+        if debug: print("Head:",width,height,channels,colorspace)
 
+        total_px = width * height
+        
+        pxls = [] # The 2d array of pixels
         pxl_Stream = [] # A buffer of all the pixels in the working row, and can be inserted into pxls
         n = 0 # Pixel read head
 
         # Decoder data
-        last_px = [0]*channels
-        prev_pxs = [None] * 64
+        if channels == 3:
+            last_px = [0,0,0]
+        else:
+            last_px = [0,0,0,255]
+        prev_pxs = [[0]*channels] * 64
+        prev_pxs[QoiPixelHash(last_px)] = last_px
 
         while n < total_px:
             # Step 1 Take in the first byte
             b1 = int.from_bytes(in_f.read(1),byteorder='big')
             px = [0]*channels
+            # if debug: print(format(b1,'b'))
             if b1 == QOI_OP_RGB or b1 == QOI_OP_RGBA: # If we have 8-bit tags
                 if b1 == QOI_OP_RGB:
                     # Step. 1-1.1 Take in the 3 more colour bytes
@@ -66,7 +77,10 @@ def fromQoi(filename):
 
                     # Step. 1-1.3 Write to the bufer 
                     px = [r,g,b]
-                    # print("RGB",px)
+                    # If we have 4 channels, add 255 as the alpha
+                    if channels == 4: 
+                        px.append(255)
+                    if debug or len(px) == 3: print("RGB",px)
                     n += 1
                     pxl_Stream.append(px)
                 else: # We have an RGBA pair
@@ -83,7 +97,7 @@ def fromQoi(filename):
                     a = int.from_bytes(ba,byteorder='big')
                     # Step. 1-2.3 Write to the bufer 
                     px = [r,g,b,a]
-                    # print("RGBA",px)
+                    if debug or len(px) == 3: print("RGBA",px)
                     n += 1
                     pxl_Stream.append(px)
             else: # If we have a 2 bit tag
@@ -93,14 +107,14 @@ def fromQoi(filename):
                 if tag == QOI_OP_INDEX:
                     data = b1 & 0b00111111 # 6 Bit Mask to read the data
                     px = prev_pxs[data]
-                    # print("INDEX",data,px)
+                    if debug or len(px) == 3: print("INDEX",data,px)
                     n += 1
                     pxl_Stream.append(px)
                 elif tag == QOI_OP_RUN:
                     data = b1 & 0b00111111 # 6 Bit Mask to read the data
                     run = data + 1 # The run is stored with a -1 bias, this counters that
                     px = last_px
-                    # print("RUN",run,px)
+                    if debug or len(px) == 3: print("RUN",run,px)
                     n += run
                     pxl_Stream.extend([px]*run)
                 elif tag == QOI_OP_DIFF:
@@ -109,7 +123,7 @@ def fromQoi(filename):
                     dg = ((data & 0b00001100) >> 2)-2
                     db = ((data & 0b00000011))-2
                     px = reverseDiff(list(last_px),[dr,dg,db])
-                    # print("DIFF",last_px,dr,dg,db,px)
+                    if debug or len(px) == 3: print("DIFF",last_px,dr,dg,db,px)
                     n += 1
                     pxl_Stream.append(px)
                 elif tag == QOI_OP_LUMA:
@@ -118,18 +132,29 @@ def fromQoi(filename):
                     dr = ((b2 & 0b11110000) >> 4) -8 + dg
                     db = ((b2 & 0b00001111)) -8 + dg
                     px = reverseDiff(list(last_px),[dr,dg,db])
-                    # print("LUMA",dr,dg,db,px)
+                    if debug or len(px) == 3: print("LUMA",dr,dg,db,px)
                     n += 1
                     pxl_Stream.append(px)
                 else:
-                    print("Unknown Code",format(b1,'b'))
+                    if debug: print("Unknown Code",format(b1,'b'))
                     exit()
             # Warp up the processing of the chunk:
             # Set the last px
+            if len(px) != len(last_px): print(len(px),n) # Use to detect non homogenious arrays
             last_px = list(px)
-            prev_pxs[QoiPixelHash(px,channels)] = px
+            
+            prev_pxs[QoiPixelHash(px)] = px
+            if len(pxl_Stream) >= width:
+                pxls.append(pxl_Stream[0:width])
+                pxl_Stream = pxl_Stream[width:]
+        return pxls
 
-        
-        
+if __name__ == "__main__":
+    pxls = fromQoi("dice.qoi")
+    if debug: print(len(pxls), len(pxls[0]))
 
-fromQoi("kodim23.qoi")
+    # Turn it into an np image
+    array = np.array(pxls, dtype=np.uint8)
+    # Use PIL to create an image from the new array of pixels
+    new_image = Image.fromarray(array)
+    new_image.save(out_directory+'/rev.png')

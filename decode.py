@@ -79,7 +79,7 @@ def fromQoi(filename):
                     px = [r,g,b]
                     # If we have 4 channels, add 255 as the alpha
                     if channels == 4: 
-                        px.append(255)
+                        px.append(last_px[3]) # The alpha value remains unchanged from the previous pixel. :)
                     if debug or len(px) == 3: print("RGB",px)
                     n += 1
                     pxl_Stream.append(px)
